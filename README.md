@@ -44,7 +44,7 @@ with 5 folds cv for a good measurement.
 #### swesat (högskoleprovet)
 
 With a target word and 5 suggested synonyms predict the correct synonym. There are 822 `target_items`, and 399 predictions
-were correct.
+were correct. Simply using cosine similarity between the target word and the possible synonyms. 
 
 | accuracy | random |
 |----------|--------|
