@@ -41,10 +41,15 @@ computing the pearson correlation coeff. Evaluation on the full test set.
 B) With training, we can add a linear layer to learn how "relatedness" is expressed in this dataset. E.g 80/20 split
 with 5 folds cv for a good measurement.
 
+| pearson | spearman |
+|---------|----------|
+|         |          |
+
 #### swesat (högskoleprovet)
 
-With a target word and 5 suggested synonyms predict the correct synonym. There are 822 `target_items`, and 399 predictions
-were correct. Simply using cosine similarity between the target word and the possible synonyms. 
+With a target word and 5 suggested synonyms predict the correct synonym. There are 822 `target_items`, and 399
+predictions
+were correct. Simply using cosine similarity between the target word and the possible synonyms.
 
 | accuracy | random |
 |----------|--------|
