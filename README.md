@@ -51,7 +51,7 @@ With a target word and 5 suggested synonyms predict the correct synonym. There a
 predictions
 were correct. Simply using cosine similarity between the target word and the possible synonyms.
 
-| accuracy | random |
+| model accuracy | random accuracy|
 |----------|--------|
 | 0.4854   | 0.2    |
 
