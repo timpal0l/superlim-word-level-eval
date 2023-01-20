@@ -60,4 +60,5 @@ with open(f'results/sweana_{MODEL_NAME}_n_shots_{N_SHOTS}.txt', 'w') as outfile:
     outfile.write(f'accuracy manual: {round(sum(binary_results) / len(binary_results), 4)}\n')
     outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n\n')
     outfile.write(f'N_SHOTS: {N_SHOTS}\n')
+    outfile.write(f'N_EVALS: {len(eval_df)}\n\n')
     outfile.write(f'prompt: {prompt}\n')
