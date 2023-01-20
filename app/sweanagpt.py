@@ -1,65 +1,28 @@
+from random import randint
+
 import requests
 from datasets import load_dataset
+from sklearn.metrics import accuracy_score
+
+MODEL_NAME = "gpt-sw3-v2-40b"
+N_SHOTS = 1
 
 dataset = load_dataset("AI-Sweden/SuperLim", 'sweana')['test']
+df = dataset.to_pandas()[0:20]
+few_shots = df.sample(n=N_SHOTS, random_state=0)
+eval_df = df.drop(few_shots.index)
+predictions, labels, binary_results, binary_random_results = [], [], [], []
 
-prompt = """
-skjuter - sköt + bleker = blekte\n
-örn - örnar + fågel = fåglar\n
-Vallentuna - Stockholm + Ekerö = Stockholm\n
-rik - rikare + låg = lägre\n
-Sofia - Bulgarien + Luanda = Angola\n
-driver - drev + stänger = stängde\n
-byter - bytte + åker = åkte\n
-Hemse - Gotland + Nyköping = Södermanland\n
-varm - varmast + djup = djupast\n
-Libreville - Gabon + Asmara = Eritrea\n
-Warszawa - Polen + Asmara = Eritrea\n
-Minsk - Vitryssland + Asmara = Eritrea\n
-Nyköping - Södermanland + Kalmar = Kalmar\n
-hård - hårdare + grön = grönare\n
-tung - tyngst + svag = svagast\n
-Singapore - Singapore + Maseru = Lesotho\n
-moralisk - omoralisk + låg = hög\n
-Antananarivo - Madagaskar + Minsk = Vitryssland\n
-telefon - telefoner + bok = böcker\n
-Warszawa - Polen + Zagreb = Kroatien\n
-Baku - Azerbajdzjan + Rabat = Marocko\n
-Budapest - Ungern + Mogadishu = Somalia\n
-dyr - billig + möjlig = omöjlig\n
-Piteå - Norrbotten + Laholm = Halland\n
-sko - skor + åsna = åsnor\n
-skarp - skarpare + vit = vitare\n
-tung - tyngre + grön = grönare\n
-Bamako - Mali + Bern = Schweiz\n
-grön - grönast + snabb = snabbast\n
-låg - hög + kort = lång\n
-snabb - långsam + kort = lång\n
-Dublin - Irland + Ljubljana = Slovenien\n
-tung - tyngre + bra = bättre\n
-Rabat - Marocko + Katmandu = Nepal\n
-bok - böcker + fågel = fåglar\n
-Reykjavik - Island + Kabul = Afghanistan\n
-tar - tog + måste = måste\n
-svår - enkel + möjlig = omöjlig\n
-Bratislava - Slovakien + Alger = Algeriet\n
-smart - smartast + kylig = kyligast\n
-Ljubljana - Slovenien + Gaborone = Botswana\n
-Tasjkent - Uzbekistan + Belgrad = Serbien\n
-Budapest - Ungern + Dusjanbe = Tadzjikistan\n
-prins - prinsessa + son = dotter\n
-tjock - tjockast + vit = vitast\n
-Tirana - Albanien + Antananarivo = Madagaskar\n
-Asmara - Eritrea + Peking = Kina\n
-Manama - Bahrain + Dusjanbe = Tadzjikistan\n
-blänker - blänkte + hugger = högg\n
-Managua - Nicaragua + Ottawa = Kanada\n
-"""
+prompt = ""
 
-for row in dataset:
+for idx, row in few_shots.iterrows():
+    prompt += f"{row['a']} - {row['b']} + {row['c']} = {row['d']}\n"
+
+for idx, row in eval_df.iterrows():
     label = row['d']
     post_prompt = f"{row['a']} - {row['b']} + {row['c']} ="
     prompt_extended = prompt + post_prompt
+
     json_post = {
         "prompt": prompt_extended,
         "model": "gpt-sw3-v2-40b",
@@ -75,11 +38,25 @@ for row in dataset:
         "stop": "\n",
         "auth_token": "80c83dd62a842ddf"
     }
+
     response = requests.post(url="http://relay.aiqu.ai:33165/v1/engines/gpt-sw3/completions", json=json_post)
     pred = response.json()['choices'][0]['text'].strip()
 
-    if label == pred:
-        print(f'Correct! {label} == {pred}')
-
+    if pred == label:
+        binary_results.append(1)
     else:
-        print(f'Incorrect! {label} != {pred}')
+        binary_results.append(0)
+
+    labels.append(label), predictions.append(pred), binary_random_results.append(randint(0, 1))
+
+eval_df['labels'] = labels
+eval_df['predictions'] = predictions
+eval_df['binary_results'] = binary_results
+eval_df['binary_random_results'] = binary_random_results
+
+eval_df.to_csv(f'dataframes/sweana_{MODEL_NAME}_n_shots_{N_SHOTS}.csv', index=False)
+
+with open(f'results/sweana_{MODEL_NAME}_n_shots_{N_SHOTS}.txt', 'w') as outfile:
+    outfile.write(f'accuracy manual: {round(sum(binary_results) / len(binary_results), 4)}\n')
+    outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n\n')
+    outfile.write(f'prompt: {prompt}\n')
