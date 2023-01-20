@@ -5,13 +5,13 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score
 
 MODEL_NAME = "gpt-sw3-v2-40b"
-N_SHOTS = 1
+N_SHOTS = 3
 
 dataset = load_dataset("AI-Sweden/SuperLim", 'sweana')['test']
-df = dataset.to_pandas()[0:20]
+df = dataset.to_pandas()[0:50]
 few_shots = df.sample(n=N_SHOTS, random_state=0)
 eval_df = df.drop(few_shots.index)
-predictions, labels, binary_results, binary_random_results = [], [], [], []
+predictions, labels, binary_results = [], [], []
 
 prompt = ""
 
@@ -47,18 +47,16 @@ for idx, row in eval_df.iterrows():
     else:
         binary_results.append(0)
 
-    labels.append(label), predictions.append(pred), binary_random_results.append(randint(0, 1))
+    labels.append(label), predictions.append(pred)
 
 eval_df['labels'] = labels
 eval_df['predictions'] = predictions
 eval_df['binary_results'] = binary_results
-eval_df['binary_random_results'] = binary_random_results
 
 eval_df.to_csv(f'dataframes/sweana_{MODEL_NAME}_n_shots_{N_SHOTS}.csv', index=False)
 
 with open(f'results/sweana_{MODEL_NAME}_n_shots_{N_SHOTS}.txt', 'w') as outfile:
-    outfile.write(f'accuracy manual: {round(sum(binary_results) / len(binary_results), 4)}\n')
-    outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n\n')
+    outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n')
     outfile.write(f'N_SHOTS: {N_SHOTS}\n')
     outfile.write(f'N_EVALS: {len(eval_df)}\n\n')
     outfile.write(f'prompt: {prompt}\n')

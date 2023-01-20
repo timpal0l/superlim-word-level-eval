@@ -1,0 +1,10 @@
+accuracy sklearn: 0.9149
+accuracy random: 0.0
+
+N_SHOTS: 3
+N_EVALS: 47
+
+prompt: Havanna - Kuba + Bangkok = Thailand
+Nassau - Bahamas + Islamabad = Pakistan
+Nassau - Bahamas + Bangkok = Thailand
+
