@@ -1,8 +1,0 @@
-accuracy sklearn: 0.4211
-accuracy random: 0.0
-
-N_SHOTS: 1
-N_EVALS: 19
-
-prompt: Havanna - Kuba + Nassau = Bahamas
-
