@@ -1,6 +1,7 @@
 import spacy
 from datasets import load_dataset
 from scipy.stats import pearsonr, spearmanr
+import krippendorff
 
 nlp = spacy.load("sv_core_news_lg")
 
@@ -12,5 +13,6 @@ for row in dataset:
     sims_pred.append(v1.similarity(v2))
     sims_label.append(float(row['similarity']) / 10.0)
 
+print(round(krippendorff.alpha([sims_pred, sims_label], level_of_measurement='interval'), 4))
 print(round(pearsonr(sims_pred, sims_label).statistic, 4))
 print(round(spearmanr(sims_pred, sims_label).statistic, 4))

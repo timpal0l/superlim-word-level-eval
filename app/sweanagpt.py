@@ -3,7 +3,7 @@ from datasets import load_dataset
 
 dataset = load_dataset("AI-Sweden/SuperLim", 'sweana')['test']
 df_all = dataset.to_pandas()
-n_shots = [1, 3, 5, 10, 25, 50, 100]
+n_shots = [1, 3, 5, 10, 25, 50]
 df_train_pool = df_all.sample(n=max(n_shots), random_state=0)
 eval_df = df_all.drop(df_train_pool.index)
 
@@ -12,7 +12,8 @@ models = [
     "gpt-sw3-356m",
     "gpt-sw3-1.3b",
     "gpt-sw3-6.7b",
-    "gpt-sw3-20b"
+    "gpt-sw3-20b",
+    "gpt-sw3-40b",
 ]
 
 for model in models[:1]:
@@ -70,4 +71,13 @@ with open(f'results/sweana_{model}_n_shots_{shot}.txt', 'w') as outfile:
     outfile.write(f'N_SHOTS: {shot}\n')
     outfile.write(f'N_EVALS: {len(eval_df)}\n\n')
     outfile.write(f'prompt: {prompt}\n')
+"""
+
+"""
+for file in files:
+    model_name = file.split('_')[1]
+    n_shots = file.split('_')[-1].split('.')[0]
+    df = pd.read_csv(file)
+    accuracy = round(df.binary_results.sum() / df.shape[0], 4)
+    print(f"model_name: {model_name}, n_shots: {n_shots}, accuracy: {accuracy}")
 """
