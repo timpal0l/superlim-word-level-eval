@@ -1,18 +1,14 @@
 import requests
 from datasets import load_dataset
 
-dataset = load_dataset("AI-Sweden/SuperLim", 'sweana')['test']
+dataset = load_dataset("sbx/superlim-2", 'sweana')['train']
 df_all = dataset.to_pandas()
-n_shots = [1, 3, 5, 10, 25, 50]
+n_shots = [175]
 df_train_pool = df_all.sample(n=max(n_shots), random_state=0)
-eval_df = df_all.drop(df_train_pool.index)
+eval_df = load_dataset("sbx/superlim-2", 'sweana')['test'].to_pandas()
 
 models = [
     "gpt-sw3-126m",
-    "gpt-sw3-356m",
-    "gpt-sw3-1.3b",
-    "gpt-sw3-6.7b",
-    "gpt-sw3-20b",
     "gpt-sw3-40b",
 ]
 
@@ -25,12 +21,12 @@ for model in models[:1]:
         prompt = ""
 
         for idx, row in few_shots.iterrows():
-            prompt += f"{row['a']} - {row['b']} + {row['c']} = {row['d']}\n"
+            prompt += f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} = {row['label']}\n"
 
         for idx, row in eval_df.iterrows():
             print(f'INFO:     running eval with model {model} and shots {shot}')
-            label = row['d']
-            post_prompt = f"{row['a']} - {row['b']} + {row['c']} ="
+            label = row['label']
+            post_prompt = f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} ="
             prompt_extended = prompt + post_prompt
 
             json_post = {
@@ -50,7 +46,8 @@ for model in models[:1]:
                 "user": "nlu",
             }
 
-            response = requests.post(url="http://relay.aiqu.ai:48683/v1/engines/gpt-sw3/completions", json=json_post)
+            response = requests.post(url="https://gpt.ai.se/v1/engines/gpt-sw3/completions", json=json_post)
+
             pred = response.json()['choices'][0]['text'].strip()
 
             if pred == label:
