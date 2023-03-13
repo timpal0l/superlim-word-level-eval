@@ -1,80 +1,56 @@
-import requests
+import pandas as pd
+import torch
 from datasets import load_dataset
+from sklearn.metrics import accuracy_score
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-dataset = load_dataset("sbx/superlim-2", 'sweana')['train']
-df_all = dataset.to_pandas()
-n_shots = [175]
-df_train_pool = df_all.sample(n=max(n_shots), random_state=0)
-eval_df = load_dataset("sbx/superlim-2", 'sweana')['test'].to_pandas()
+samples = load_dataset("sbx/superlim-2", 'swesat')['test']
+models = ["gpt-sw3-126m", "gpt-sw3-356m", "gpt-sw3-1.3b", "gpt-sw3-6.7b", "gpt-sw3-20b"]
+models = ["gpt-sw3-20b", ]
 
-models = [
-    "gpt-sw3-126m",
-    "gpt-sw3-40b",
-]
+for model_name in models:
 
-for model in models[:1]:
-    print(f'INFO:     running model: {model}')
-    for shot in n_shots:
-        print(f'INFO:     n shot: {shot}')
-        few_shots = df_train_pool.sample(n=shot, random_state=0)
-        predictions, labels, binary_results = [], [], []
-        prompt = ""
+    tokenizer = AutoTokenizer.from_pretrained(f"/data/models/AI-Sweden/{model_name}")
+    model = AutoModelForCausalLM.from_pretrained(f"/data/models/AI-Sweden/{model_name}",
+                                                 device_map="auto",
+                                                 load_in_8bit=True).half()
+    model.eval()
 
-        for idx, row in few_shots.iterrows():
-            prompt += f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} = {row['label']}\n"
+    prompt = 'ordet {} är en synonym till"'
 
-        for idx, row in eval_df.iterrows():
-            print(f'INFO:     running eval with model {model} and shots {shot}')
-            label = row['label']
-            post_prompt = f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} ="
-            prompt_extended = prompt + post_prompt
+    X_s, Y_s = [], []
 
-            json_post = {
-                "prompt": prompt_extended,
-                "model": model,
-                "max_tokens": 64,
-                "temperature": 0,
-                "top_p": 1,
-                "n": 1,
-                "stream": False,
-                "no_repeat_ngram_size": 0,
-                "repetition_penalty": 0,
-                "frequency_penalty": 0,
-                "presence_penalty": 0,
-                "stop": "\n",
-                "token": "y8ABUHCeVNCVqPycPkEgaayXCawkuv94",
-                "user": "nlu",
-            }
+    for sample in samples:
+        query = sample["item"]
+        docs = sample["candidate_answers"]
+        preds = []
 
-            response = requests.post(url="https://gpt.ai.se/v1/engines/gpt-sw3/completions", json=json_post)
+        for doc in docs:
+            context = prompt.format(doc)
 
-            pred = response.json()['choices'][0]['text'].strip()
+            context_enc = tokenizer.encode(context, add_special_tokens=False)
+            continuation_enc = tokenizer.encode(query, add_special_tokens=False)
+            # Slice off the last token, as we take its probability from the one before
+            model_input = torch.tensor(context_enc + continuation_enc[:-1]).to("cuda")
+            continuation_len = len(continuation_enc)
+            input_len, = model_input.shape
 
-            if pred == label:
-                binary_results.append(1)
-            else:
-                binary_results.append(0)
+            # [seq_len] -> [seq_len, vocab]
+            logprobs = torch.nn.functional.log_softmax(model(model_input)[0], dim=-1).cpu()
+            # [seq_len, vocab] -> [continuation_len, vocab]
+            logprobs = logprobs[input_len - continuation_len:]
+            # Gather the log probabilities of the continuation tokens -> [continuation_len]
+            logprobs = torch.gather(logprobs, 1, torch.tensor(continuation_enc).unsqueeze(-1)).squeeze(-1)
+            score = torch.sum(logprobs)
+            # The higher (closer to 0), the more similar
 
-            labels.append(label), predictions.append(pred)
+            preds.append((doc, score.item()))
+            sorted_by_score = sorted(preds, key=lambda tup: tup[1])
 
-        eval_df['labels'] = labels
-        eval_df['predictions'] = predictions
-        eval_df['binary_results'] = binary_results
-        eval_df.to_csv(f'dataframes/sweana_{model}_n_shots_{shot}.csv', index=False)
+        x = sorted_by_score[-1][0]
+        X_s.append(x)
+        Y_s.append(sample["candidate_answers"][int(sample["label"])])
 
-"""
-with open(f'results/sweana_{model}_n_shots_{shot}.txt', 'w') as outfile:
-    outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n')
-    outfile.write(f'N_SHOTS: {shot}\n')
-    outfile.write(f'N_EVALS: {len(eval_df)}\n\n')
-    outfile.write(f'prompt: {prompt}\n')
-"""
-
-"""
-for file in files:
-    model_name = file.split('_')[1]
-    n_shots = file.split('_')[-1].split('.')[0]
-    df = pd.read_csv(file)
-    accuracy = round(df.binary_results.sum() / df.shape[0], 4)
-    print(f"model_name: {model_name}, n_shots: {n_shots}, accuracy: {accuracy}")
-"""
+    df = pd.DataFrame({"labels": Y_s, "predicted": X_s})
+    df.to_csv(f'dataframes/swesat_{model_name}.csv')
+    print('model_name:', model_name, 'score:', accuracy_score(Y_s, X_s))
