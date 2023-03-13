@@ -1,5 +1,6 @@
 import requests
 from datasets import load_dataset
+from sklearn.metrics import accuracy_score
 
 dataset = load_dataset("sbx/superlim-2", 'sweana')['train']
 df_all = dataset.to_pandas()
@@ -8,14 +9,17 @@ df_train_pool = df_all.sample(n=max(n_shots), random_state=0)
 eval_df = load_dataset("sbx/superlim-2", 'sweana')['test'].to_pandas()
 
 models = [
-    "gpt-sw3-126m",
-    "gpt-sw3-40b",
+    # "gpt-sw3-126m",
+    "gpt-sw3-356m",
+    "gpt-sw3-1.3b",
+    "gpt-sw3-6.7b",
+    # "gpt-sw3-40b",
 ]
 
-for model in models[:1]:
+for model in models:
     print(f'INFO:     running model: {model}')
     for shot in n_shots:
-        print(f'INFO:     n shot: {shot}')
+        #print(f'INFO:     n shot: {shot}')
         few_shots = df_train_pool.sample(n=shot, random_state=0)
         predictions, labels, binary_results = [], [], []
         prompt = ""
@@ -24,7 +28,7 @@ for model in models[:1]:
             prompt += f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} = {row['label']}\n"
 
         for idx, row in eval_df.iterrows():
-            print(f'INFO:     running eval with model {model} and shots {shot}')
+            #print(f'INFO:     running eval with model {model} and shots {shot}')
             label = row['label']
             post_prompt = f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} ="
             prompt_extended = prompt + post_prompt
@@ -61,3 +65,5 @@ for model in models[:1]:
         eval_df['predictions'] = predictions
         eval_df['binary_results'] = binary_results
         eval_df.to_csv(f'dataframes/sweana_{model}_n_shots_{shot}.csv', index=False)
+
+        print(model, accuracy_score(labels, predictions))
