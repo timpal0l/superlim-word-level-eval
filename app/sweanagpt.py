@@ -61,20 +61,3 @@ for model in models[:1]:
         eval_df['predictions'] = predictions
         eval_df['binary_results'] = binary_results
         eval_df.to_csv(f'dataframes/sweana_{model}_n_shots_{shot}.csv', index=False)
-
-"""
-with open(f'results/sweana_{model}_n_shots_{shot}.txt', 'w') as outfile:
-    outfile.write(f'accuracy sklearn: {round(accuracy_score(y_true=labels, y_pred=predictions), 4)}\n')
-    outfile.write(f'N_SHOTS: {shot}\n')
-    outfile.write(f'N_EVALS: {len(eval_df)}\n\n')
-    outfile.write(f'prompt: {prompt}\n')
-"""
-
-"""
-for file in files:
-    model_name = file.split('_')[1]
-    n_shots = file.split('_')[-1].split('.')[0]
-    df = pd.read_csv(file)
-    accuracy = round(df.binary_results.sum() / df.shape[0], 4)
-    print(f"model_name: {model_name}, n_shots: {n_shots}, accuracy: {accuracy}")
-"""
