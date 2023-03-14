@@ -19,7 +19,7 @@ models = [
 for model in models:
     print(f'INFO:     running model: {model}')
     for shot in n_shots:
-        #print(f'INFO:     n shot: {shot}')
+        # print(f'INFO:     n shot: {shot}')
         few_shots = df_train_pool.sample(n=shot, random_state=0)
         predictions, labels, binary_results = [], [], []
         prompt = ""
@@ -28,7 +28,7 @@ for model in models:
             prompt += f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} = {row['label']}\n"
 
         for idx, row in eval_df.iterrows():
-            #print(f'INFO:     running eval with model {model} and shots {shot}')
+            # print(f'INFO:     running eval with model {model} and shots {shot}')
             label = row['label']
             post_prompt = f"{row['pair1_element1']} - {row['pair1_element2']} + {row['pair2_element1']} ="
             prompt_extended = prompt + post_prompt
@@ -46,7 +46,7 @@ for model in models:
                 "frequency_penalty": 0,
                 "presence_penalty": 0,
                 "stop": "\n",
-                "token": "y8ABUHCeVNCVqPycPkEgaayXCawkuv94",
+                "token": "",
                 "user": "nlu",
             }
 

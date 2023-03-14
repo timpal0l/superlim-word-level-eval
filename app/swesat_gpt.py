@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 samples = load_dataset("sbx/superlim-2", 'swesat')['test']
-models = ["gpt-sw3-126m", "gpt-sw3-356m", "gpt-sw3-1.3b", "gpt-sw3-6.7b", "gpt-sw3-20b"]
+models = ["gpt-sw3-126m", "gpt-sw3-356m", "gpt-sw3-1.3b", "gpt-sw3-6.7b"]
 
 for model_name in models:
 
