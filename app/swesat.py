@@ -4,28 +4,23 @@ from datasets import load_dataset
 
 nlp = spacy.load("sv_core_news_lg")
 
-dataset = load_dataset("AI-Sweden/SuperLim", 'swesat')['test']
+dataset = load_dataset("sbx/superlim-2", 'swesat')['test']
 results, preds = [], []
 
 for r in dataset:
-    target_item = r['target_item']
-    target_item_vec = nlp(target_item)
-    answers = r['answer_1'], r['answer_2'], r['answer_3'], r['answer_4'], r['answer_5']
-    sims, labels = [], []
-    for e, answer in enumerate(answers):
-        try:
-            answer_text, answer_label = answer.split('/')
-        except ValueError:
-            print('labels not added correctly')
-            answer_text, answer_label = answer, 0
-            # {'target_item': 'dedikerad', 'answer_1': 'stödjande/0', 'answer_2': 'beslutsam', ...'}
-        if int(answer_label) == 1:
-            ground_truth = e
 
-        sims.append(target_item_vec.similarity(nlp(answer_text)))
+    target_item = r['item']
+    target_item_vec = nlp(target_item)
+    candidate_answers = r['candidate_answers']
+
+    sims, labels = [], []
+    ground_truth = r['candidate_answers'][r['label']]
+    for e, answer in enumerate(candidate_answers):
+        sims.append(target_item_vec.similarity(nlp(answer)))
 
     sims = np.asarray(sims)
-    if ground_truth == sims.argmax():  # randint(0, 4):
+
+    if ground_truth == r['candidate_answers'][sims.argmax()]:
         results.append(1)
     else:
         results.append(0)
